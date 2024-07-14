@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>内一句话我写一整天</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+    }
+    .container {
+        display: inline-block;
+        position: relative;
+        cursor: pointer;
+    }
+    .canvas {
+        display: block;
+        max-width: 100%; /* 最大宽度不超过页面宽度 */
+        max-height: 80vh; /* 最大高度不超过页面高度的80% */
+        margin: 20px auto; /* 居中显示 */        
+    }
+    .scatchCanvas {
+        position: absolute;
+        top: 0;
+    }
+    .text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 2vw; /* 字体大小使用vw单位，相对于视口宽度的2% */
+        color: #000;
+        font-weight: bold;
+    }
+</style>
+</head>
+<body>
+    <div class="container">
+        <canvas id="backgroundCanvas" class="canvas"></canvas>
+        <canvas id="scratchCanvas" class="canvas scatchCanvas"></canvas>
+        <div id="text" class="text"></div>
+    </div>
+
+    <script>
+        // 初始化刮刮乐游戏
+        const backgroundCanvas = document.getElementById('backgroundCanvas');
+        const scratchCanvas = document.getElementById('scratchCanvas');
+        const ctxBackground = backgroundCanvas.getContext('2d');
+        const ctxScratch = scratchCanvas.getContext('2d');
+        const text = document.getElementById('text');
+        const scratchWidth = 20; // 刮开的笔触宽度
+        let isDrawing = false;
+
+        // 定义奖券背景图像
+        const backgroundImage = new Image();
+        backgroundImage.onload = function() {
+            // 绘制背景图像
+            resizeCanvas(); // 首次加载时调整画布大小
+            drawTicket(); // 绘制奖券内容
+        };
+        backgroundImage.src = 'nonum.png';
+
+        // 调整画布大小和绘制内容
+        function resizeCanvas() {
+            const maxWidth = 0.9 * window.innerWidth; // 画布最大宽度为窗口宽度的90%
+            const maxHeight = 0.8 * window.innerHeight; // 画布最大高度为窗口高度的80%
+
+            // 计算适应窗口大小后的画布尺寸
+            let scale = Math.min(maxWidth / backgroundImage.width, maxHeight / backgroundImage.height);
+            backgroundCanvas.width = backgroundImage.width * scale;
+            backgroundCanvas.height = backgroundImage.height * scale;
+            scratchCanvas.width = backgroundImage.width * scale;
+            scratchCanvas.height = backgroundImage.height * scale;
+
+            // 调整文本大小
+            text.style.fontSize = `${2 * scale}vw`; // 字体大小随画布缩放
+        }
+
+        // 窗口大小变化时重新调整画布大小和绘制内容
+        window.addEventListener('resize', function() {
+            resizeCanvas();
+            drawTicket();
+        });
+
+        // 绘制奖券内容
+        function drawTicket() {
+            ctxBackground.drawImage(backgroundImage, 0, 0, backgroundCanvas.width, backgroundCanvas.height);
+
+            // 绘制多行多列的号码和中奖金额
+            const startX = 0.14 * backgroundCanvas.width; // 起始X坐标
+            const startY = 0.61 * backgroundCanvas.height; // 起始Y坐标
+            const lineHeight = 0.08 * backgroundCanvas.height; // 行高
+
+            for (let row = 0; row < 3; row++) {
+                for (let col = 0; col < 5; col++) {
+                    const lotteryNumber = generateRandomNumber(); // 生成随机号码
+                    const prizeAmount = getRandomPrizeAmount(); // 获取随机中奖金额
+
+                    const x = startX + col * 0.16 * backgroundCanvas.width; // 根据列数调整X坐标
+                    const y = startY + row * lineHeight; // 根据行数调整Y坐标
+
+                    // 绘制号码和金额
+                    ctxBackground.font = `${0.03 * backgroundCanvas.width}px Arial`; // 字体大小为画布宽度的3%
+                    ctxBackground.fillStyle = 'black';
+                    ctxBackground.fillText(`${lotteryNumber}`, x, y);
+                    ctxBackground.fillText(`${prizeAmount}`, x, y + 0.025 * backgroundCanvas.height); // 金额稍微下移一些
+                }
+            }
+
+            // 绘制灰色圆角矩形
+            ctxScratch.fillStyle = '#ccc';
+            roundRect(ctxScratch, startX - 0.09 * backgroundCanvas.width, startY - 0.05 * backgroundCanvas.height, 0.9 * backgroundCanvas.width, 0.26 * backgroundCanvas.height, 0.02 * backgroundCanvas.width, true, false);
+        }
+
+        // 绘制圆角矩形的函数
+        function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
+            if (typeof stroke === 'undefined') {
+                stroke = true;
+            }
+            if (typeof radius === 'undefined') {
+                radius = 5;
+            }
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+            if (fill) {
+                ctx.fill();
+            }
+            if (stroke) {
+                ctx.stroke();
+            }
+        }
+
+        // 生成随机号码
+        function generateRandomNumber() {
+            let randomNumber = Math.floor(Math.random() * 100);
+            const randomValue = Math.random();
+            if (randomValue < 0.0001) {
+                randomNumber = 666;
+            }
+            return randomNumber < 10 ? `0${randomNumber}` : `${randomNumber}`;
+        }
+
+        // 获取随机中奖金额
+        function getRandomPrizeAmount() {
+            let prizeAmount;
+            const randomValue = Math.random();
+            prizeAmount = Math.random(); 
+            if (randomValue < 0.5) {
+                prizeAmount = Math.floor(prizeAmount * 2) * 5; 
+                if (prizeAmount === 0 && randomValue < 0.49) {
+                    prizeAmount = 5; 
+                }
+            } else if (randomValue < 0.9) {
+                prizeAmount = Math.floor(prizeAmount * 20) * 5; 
+            } else if(randomValue < 0.95) {
+                prizeAmount = Math.floor(prizeAmount * 200) * 5;
+            }else if(randomValue < 0.995) {
+                prizeAmount = Math.floor(prizeAmount * 2000) * 5; 
+            }else if(randomValue < 0.9995) {
+                prizeAmount = Math.floor(prizeAmount * 20000) * 5;
+            }else {
+                prizeAmount = Math.floor(prizeAmount * 50000) * 5;
+            }
+            if (randomValue < 0.01) {
+                prizeAmount = -prizeAmount; // 0.1%概率为负数
+            }
+            if (randomValue < 0.01) {
+                prizeAmount = `₽${prizeAmount}` // 1%概率为卢布
+            } else if (randomValue < 0.9) {
+                prizeAmount = `￥${prizeAmount}`; // 9%概率为人民币，取5的倍数
+            } else if (randomValue < 0.99) {
+                prizeAmount = `$${prizeAmount}`; // 1%概率为美元，取5的倍数
+            } else {
+                prizeAmount = '谢谢参与！'; // 其他概率为谢谢参与
+            }
+            return prizeAmount;
+        }
+
+        // 刮开效果
+        function scratch(event) {
+            if (!isDrawing) return;
+
+            const x = event.offsetX;
+            const y = event.offsetY;
+
+            // ctxScratch.globalCompositeOperation = 'destination-out';
+            // ctxScratch.beginPath();
+            // ctxScratch.arc(x, y, scratchWidth, 0, Math.PI * 2);
+            // ctxScratch.fill();
+            // ctxScratch.clear
+            clearArcFun(x,y,scratchWidth,ctxScratch);
+        }
+
+        function clearArcFun(x,y,r,cxt){    //(x,y)为要清除的圆的圆心，r为半径，cxt为context
+            var stepClear=1;//别忘记这一步  
+            clearArc(x,y,r);
+            function clearArc(x,y,radius){
+                var calcWidth=radius-stepClear;  
+                var calcHeight=Math.sqrt(radius*radius-calcWidth*calcWidth);  
+            var posX=x-calcWidth;  
+                var posY=y-calcHeight;  
+                                
+                var widthX=2*calcWidth;  
+                var heightY=2*calcHeight;  
+                                
+                if(stepClear<=radius){  
+                    cxt.clearRect(posX,posY,widthX,heightY);  
+                    stepClear+=1;  
+                    clearArc(x,y,radius);  
+                }  
+            }  
+        }
+
+        // 开始刮开
+        scratchCanvas.addEventListener('mousedown', function() {
+            isDrawing = true;
+        });
+
+        // 结束刮开
+        scratchCanvas.addEventListener('mouseup', function() {
+            isDrawing = false;
+            checkIfScratched();
+        });
+
+        scratchCanvas.addEventListener('mousemove', scratch);
+
+        // 检查刮开完成情况
+        function checkIfScratched() {
+            const imageData = ctxScratch.getImageData(0, 0, scratchCanvas.width, scratchCanvas.height);
+            let pixels = 0;
+            for (let i = 0; i < imageData.data.length; i += 4) {
+                if (imageData.data[i + 3] === 0) {
+                    pixels++;
+                }
+            }
+            const totalPixels = scratchCanvas.width * scratchCanvas.height;
+            const percentScratched = pixels / totalPixels * 100;
+
+            if (percentScratched >= 50) {
+                revealTicket(); // 刮开完成，执行相关逻辑
+            }
+        }
+
+        // 刮开完成后的逻辑
+        function revealTicket() {
+            // 可在这里添加刮开后的处理逻辑，例如显示中奖信息等
+            console.log('刮开完成！');
+        }
+    </script>
+</body>
+</html>
